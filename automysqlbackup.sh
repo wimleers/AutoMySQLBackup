@@ -64,6 +64,9 @@ MDBNAMES="mysql $DBNAMES"
 # List of DBNAMES to EXLUCDE if DBNAMES are set to all (must be in " quotes)
 DBEXCLUDE=""
 
+# List of tables to exclude from the backup (in form db.table)
+TABLEEXCLUDE=""
+
 # Include CREATE DATABASE in backup?
 CREATE_DATABASE=yes
 
@@ -444,6 +447,12 @@ if [ "$PREBACKUP" ]
 	echo
 fi
 
+# Add --ignore-table options to $OPT
+if [ -n "$TABLEEXCLUDE" ]; then
+    for table in $TABLEEXCLUDE ; do
+        OPT="${OPT} --ignore-table=${table}"
+    done
+fi
 
 if [ "$SEPDIR" = "yes" ]; then # Check if CREATE DATABSE should be included in Dump
 	if [ "$CREATE_DATABASE" = "no" ]; then

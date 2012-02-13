@@ -67,6 +67,10 @@ DBEXCLUDE=""
 # List of tables to exclude from the backup (in form db.table)
 TABLEEXCLUDE=""
 
+# List of wildcard table names for which to only back up the structure (not
+# the data). They'll be expanded to the proper form (db.table) automatically.
+TABLENODATA=""
+
 # Include CREATE DATABASE in backup?
 CREATE_DATABASE=yes
 
@@ -408,7 +412,8 @@ exec 2> $LOGERR     # stderr replaced with file $LOGERR.
 
 # Database dump function
 dbdump () {
-mysqldump --user=$USERNAME --password=$PASSWORD --host=$DBHOST $OPT $1 > $2
+mysqldump --user=$USERNAME --password=$PASSWORD --host=$DBHOST $OPT --no-data $1 > $2
+mysqldump --user=$USERNAME --password=$PASSWORD --host=$DBHOST $OPT $OPT_DATA $1 >> $2
 return 0
 }
 
@@ -451,6 +456,17 @@ fi
 if [ -n "$TABLEEXCLUDE" ]; then
     for table in $TABLEEXCLUDE ; do
         OPT="${OPT} --ignore-table=${table}"
+    done
+fi
+
+# Add --ignore-table options to $OPT_DATA
+OPT_DATA=""
+if [ -n "$TABLENODATA" ]; then
+    for table_wildcard in $TABLENODATA ; do
+        tables_found="`mysql --user=$USERNAME --password=$PASSWORD --host=$DBHOST --batch --skip-column-names -e "select CONCAT(table_schema, '.',  table_name) from information_schema.tables where table_name like '${table_wildcard}';"`"
+        for table in $tables_found ; do
+          OPT_DATA="${OPT_DATA} --ignore-table=${table}"
+        done
     done
 fi
 
